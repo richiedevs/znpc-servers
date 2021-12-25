@@ -1,98 +1,99 @@
 package io.github.znetworkw.znpcservers.skin;
 
-import static io.github.znetworkw.znpcservers.ZNPCs.SETTINGS;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-import io.github.znetworkw.znpcservers.http.AsyncHttpClient;
-import io.github.znetworkw.znpcservers.http.HttpMethod;
-import io.github.znetworkw.znpcservers.skin.internal.DefaultSkinFetcherBuilder;
-
-import java.util.function.Consumer;
+import java.io.DataOutputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
- * Interface for fetching skin results of a skin name.
+ * Retrieves the skin textures for a {@link SkinFetcherBuilder}.
  *
- * @author Gaston Gonzalez {@literal <znetworkw.dev@gmail.com>}
+ * @see SkinFetcherBuilder
  */
-public interface SkinFetcher {
+public class SkinFetcher {
     /**
-     * Skin name used for default skins.
+     * A empty string.
      */
-    String DEFAULT_SKIN_NAME = "Notch";
+    private static final String EMPTY_STRING = "";
+    /**
+     * The charset that will be used when making the skin request.
+     */
+    private static final String DEFAULT_CHARSET = "UTF-8";
+    /**
+     * A executor service to delegate the work.
+     */
+    private static final ExecutorService SKIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
+    /**
+     * Creates a new parser.
+     */
+    private static final JsonParser JSON_PARSER = new JsonParser();
+    /**
+     * The skin builder.
+     */
+    private final SkinFetcherBuilder builder;
 
     /**
-     * Creates a new builder skin fetcher builder.
+     * Creates a new {@link SkinFetcher} for the given builder.
      *
-     * @return a new skin fetcher builder.
+     * @param builder The builder.
      */
-    static SkinFetcherBuilder builder() {
-        return new DefaultSkinFetcherBuilder();
+    public SkinFetcher(SkinFetcherBuilder builder) {
+        this.builder = builder;
     }
 
     /**
-     * Creates a new, default skin fetcher for the specified skin name.
-     *
-     * @param skin skin name.
-     * @return a new skin fetcher for the specified skin name.
+     * Fetches the the skin from the specified
+     * builder {@link SkinFetcherBuilder#getAPIServer()}.
+     * @return
      */
-    static SkinFetcher of(String skin) {
-        return builder()
-            .withSkin(skin)
-            .withClient(SETTINGS.getAsyncHttpClient())
-            .withServer(SkinFetcherService.of(skin.startsWith("http") ? HttpMethod.POST : HttpMethod.GET))
-            .build();
+    public CompletableFuture<JsonObject> doReadSkin(SkinFetcherResult skinFetcherResult) {
+        CompletableFuture<JsonObject> completableFuture = new CompletableFuture<>();
+        SKIN_EXECUTOR_SERVICE.submit(() -> {
+            try {
+                HttpURLConnection connection = (HttpURLConnection) new URL(builder.getAPIServer().getURL() + getData()).openConnection();
+                connection.setRequestMethod(builder.getAPIServer().getMethod());
+                connection.setDoInput(true);
+                if (builder.isUrlType()) {
+                    connection.setDoOutput(true);
+                    // send skin data
+                    try (DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream())) {
+                        outputStream.writeBytes("url=" + URLEncoder.encode(builder.getData(), DEFAULT_CHARSET));
+                    }
+                }
+                try (Reader reader = new InputStreamReader(connection.getInputStream(), Charset.forName(DEFAULT_CHARSET))) {
+                    completableFuture.complete(JSON_PARSER.parse(reader).getAsJsonObject());
+                } finally {
+                    connection.disconnect();
+                }
+            } catch (Throwable throwable) {
+                completableFuture.completeExceptionally(throwable);
+            }
+        });
+        completableFuture.whenComplete((response, throwable) -> {
+            if (completableFuture.isCompletedExceptionally()) {
+                skinFetcherResult.onDone(null, throwable);
+            } else {
+                JsonObject jsonObject = response.getAsJsonObject(builder.getAPIServer().getValueKey());
+                JsonObject properties = jsonObject.getAsJsonObject(builder.getAPIServer().getSignatureKey());
+                skinFetcherResult.onDone(new String[]{properties.get("value").getAsString(), properties.get("signature").getAsString()}, null);
+            }
+        });
+        return completableFuture;
     }
 
     /**
-     * Fetches the skin result, if the fetch is success the method will invoke {@code onSuccess}
-     * consumer otherwise the method will invoke {@code onError} consumer.
-     *
-     * @param onSuccess called when the fetch success.
-     * @param onError called when the fetch failed.
-     * @throws Exception if failed to get skin result.
+     * Returns the url data for the builder api server.
      */
-    void fetch(Consumer<SkinFetcherResult> onSuccess, Consumer<Throwable> onError) throws Exception;
-
-    /**
-     * Builder interface to create {@link SkinFetcher}s.
-     */
-    interface SkinFetcherBuilder {
-        /**
-         * Sets the fetcher skin name.
-         *
-         * @param name skin name.
-         * @return this.
-         */
-        SkinFetcherBuilder withSkin(String name);
-
-        /**
-         * Sets the fetcher http client.
-         *
-         * @param httpClient fetcher http client.
-         * @return this.
-         */
-        SkinFetcherBuilder withClient(AsyncHttpClient httpClient);
-
-        /**
-         * Sets the fetcher server.
-         *
-         * @param server fetcher server.
-         * @return this.
-         */
-        SkinFetcherBuilder withServer(SkinFetcherService server);
-
-        /**
-         * Sets the fetcher timeout.
-         *
-         * @param timeout fetch timeout.
-         * @return this.
-         */
-        SkinFetcherBuilder withTimeout(int timeout);
-
-        /**
-         * Creates a new skin fetcher based from this builder.
-         *
-         * @return a new skin fetcher based from this builder.
-         */
-        SkinFetcher build();
+    private String getData() {
+        return builder.isProfileType() ? "/" + builder.getData() : EMPTY_STRING;
     }
 }

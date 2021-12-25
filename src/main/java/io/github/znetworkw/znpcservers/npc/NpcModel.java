@@ -1,86 +1,72 @@
 package io.github.znetworkw.znpcservers.npc;
 
-import io.github.znetworkw.znpcservers.npc.function.NpcFunctionContext;
-import io.github.znetworkw.znpcservers.npc.function.NpcFunctionModel;
-import io.github.znetworkw.znpcservers.utility.PluginLocation;
+import io.github.znetworkw.znpcservers.npc.conversation.ConversationModel;
+import io.github.znetworkw.znpcservers.utility.location.ZLocation;
+import org.bukkit.inventory.ItemStack;
 
-import java.io.Serializable;
 import java.util.*;
 
 /**
- * Information about an {@link Npc}.
- *
- * @author Gaston Gonzalez {@literal <znetworkw.dev@gmail.com>}
+ * Contains information about a {@link NPC}.
  */
-public class NpcModel implements Cloneable, Serializable {
+public class NPCModel {
+    private static final String EMPTY_STRING = "";
     /**
-     * The npc unique id.
+     * The npc id.
+     * <p>
+     * This id is used to identify a npc for this model.
      */
     private int id;
-
-    /**
-     * The npc hologram height.
-     */
+    /** The npc hologram height. */
     private double hologramHeight;
-
-    /**
-     * The texture and signature
-     * of the npc skin.
-     */
-    private String skin, signature = "";
-
-    /**
-     * The npc path name.
-     */
+    /** The texture & signature for the npc skin. */
+    private String skin, signature="";
+    /** The npc path name. */
     private String pathName;
-
-    /**
-     * The npc glow color name.
-     */
+    /** The name for the glow color. */
     private String glowName;
-
-    /**
-     * The npc location.
-     */
-    private PluginLocation location;
-
-    /**
-     * The npc type name.
-     */
-    private String npcType;
-
-    /**
-     * The npc hologram lines.
-     */
+    /** The npc conversation. */
+    private ConversationModel conversation;
+    /** The npc location. */
+    private ZLocation location;
+    /** The entity type for the npc. */
+    private NPCType npcType;
+    /** The npc hologram lines. */
     private List<String> hologramLines;
-
-    /**
-     * The npc functions.
-     */
-    private Map<String, NpcFunctionModel> npcFunctions;
-
-    /**
-     * The npc customization.
-     */
+    /** The actions to be executed when the npc is interacted. */
+    private List<NPCAction> clickActions;
+    /** The npc equipment. */
+    private Map<ItemSlot, ItemStack> npcEquip;
+    /** The npc toggle values. */
+    private Map<String, Boolean> npcFunctions;
+    /** The npc customization. */
     private Map<String, String[]> customizationMap;
 
-    /**
-     * Constructs a new {@link NpcModel}.
-     *
-     * @param id the unique id for the model.
-     */
-    public NpcModel(int id) {
+    public NPCModel(int id) {
         this();
         this.id = id;
-        this.npcType = "player";
-        skin = "";
-        signature = "";
+        skin = EMPTY_STRING;
+        signature = EMPTY_STRING;
+        npcType = NPCType.PLAYER;
+    }
+
+    /**
+     * Default no-args constructor, this would be used by gson. Initializes variables
+     * for missing fields since gson doesn't support it.
+     */
+    private NPCModel() {
+        hologramLines = Collections.singletonList("/znpcs lines");
+        clickActions = new ArrayList<>();
+        npcEquip = new HashMap<>();
+        customizationMap = new HashMap<>();
+        npcFunctions = new HashMap<>();
+        npcFunctions.put("holo", true);
     }
 
     /**
      * Returns the npc id identifier.
      *
-     * @return the npc id identifier.
+     * @return The npc identifier.
      */
     public int getId() {
         return id;
@@ -89,14 +75,16 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Sets the {@link #getId()} of this object.
      *
-     * @param id the npc id identifier.
+     * @param id The npc identifier.
      */
     public void setId(int id) {
         this.id = id;
     }
 
-    /** Returns the current object with the new {@code id}. */
-    public NpcModel withId(int id) {
+    /**
+     * Returns the current object with the new {@code id}.
+     */
+    public NPCModel withId(int id) {
         setId(id);
         return this;
     }
@@ -104,7 +92,7 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Returns the npc hologram height.
      *
-     * @return the npc hologram height.
+     * @return The npc hologram height.
      */
     public double getHologramHeight() {
         return hologramHeight;
@@ -113,14 +101,16 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Sets the {@link #getHologramHeight()} of this object.
      *
-     * @param hologramHeight the npc hologram height.
+     * @param hologramHeight The npc hologram height.
      */
     public void setHologramHeight(double hologramHeight) {
         this.hologramHeight = hologramHeight;
     }
 
-    /** Returns the current object with a new {@code hologramHeight}. */
-    public NpcModel withHologramHeight(double hologramHeight) {
+    /**
+     * Returns the current object with a new {@code hologramHeight}.
+     */
+    public NPCModel withHologramHeight(double hologramHeight) {
         setHologramHeight(hologramHeight);
         return this;
     }
@@ -128,7 +118,7 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Returns the npc skin texture.
      *
-     * @return the npc skin texture.
+     * @return The npc skin texture.
      */
     public String getSkin() {
         return skin;
@@ -137,14 +127,16 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Sets the {@link #getSkin()} of this object.
      *
-     * @param skin the npc texture.
+     * @param skin The npc texture.
      */
     public void setSkin(String skin) {
         this.skin = skin;
     }
 
-    /** Returns the current object with a new {@code skin}. */
-    public NpcModel withSkin(String skin) {
+    /**
+     * Returns the current object with a new {@code skin}.
+     */
+    public NPCModel withSkin(String skin) {
         setSkin(skin);
         return this;
     }
@@ -152,7 +144,7 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Returns the npc skin signature.
      *
-     * @return the npc skin signature.
+     * @return The npc skin signature.
      */
     public String getSignature() {
         return signature;
@@ -161,14 +153,16 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Sets the {@link #getSignature()} of this object.
      *
-     * @param signature the npc signature.
+     * @param signature The npc signature.
      */
     public void setSignature(String signature) {
         this.signature = signature;
     }
 
-    /** Returns the current object with a new {@code signature}. */
-    public NpcModel withSignature(String signature) {
+    /**
+     * Returns the current object with a new {@code signature}.
+     */
+    public NPCModel withSignature(String signature) {
         setSignature(signature);
         return this;
     }
@@ -176,7 +170,7 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Returns the npc path name.
      *
-     * @return the npc path name.
+     * @return The npc path name.
      */
     public String getPathName() {
         return pathName;
@@ -185,14 +179,16 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Sets the {@link #getPathName()} of this object.
      *
-     * @param pathName the npc path name.
+     * @param pathName The npc path name.
      */
     public void setPathName(String pathName) {
         this.pathName = pathName;
     }
 
-    /** Returns the current object with a new {@code pathName}. */
-    public NpcModel withPathName(String pathName) {
+    /**
+     * Returns the current object with a new {@code pathName}.
+     */
+    public NPCModel withPathName(String pathName) {
         setPathName(pathName);
         return this;
     }
@@ -200,7 +196,7 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Returns the npc glow name.
      *
-     * @return the npc glow name.
+     * @return The npc glow name.
      */
     public String getGlowName() {
         return glowName;
@@ -209,40 +205,69 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Sets the {@link #getGlowName()} of this object.
      *
-     * @param glowName the npc glow name color.
+     * @param glowName The npc glow name color.
      */
     public void setGlowName(String glowName) {
         this.glowName = glowName;
     }
 
     /**
-     *  Returns the current object with a new {@code glowName}.
+     * Returns the current object with a new {@code glowName}.
      */
-    public NpcModel withGlowName(String glowName) {
+    public NPCModel withGlowName(String glowName) {
         setGlowName(pathName);
+        return this;
+    }
+
+    /**
+     * Returns the npc conversation.
+     *
+     * @return The npc conversation.
+     */
+    public ConversationModel getConversation() {
+        return conversation;
+    }
+
+    /**
+     * Sets the {@link #getConversation()} of this object.
+     *
+     * @param conversation The npc conversation.
+     */
+    public void setConversation(ConversationModel conversation) {
+        this.conversation = conversation;
+    }
+
+    /**
+     * Returns the current object with a new {@code conversation}.
+     */
+    public NPCModel withConversation(ConversationModel conversation) {
+        setConversation(conversation);
         return this;
     }
 
     /**
      * Returns the npc hologram lines.
      *
-     * @return the npc hologram lines.
+     * @return The npc hologram lines.
      */
     public List<String> getHologramLines() {
         return hologramLines;
     }
 
+
     /**
      * Sets the {@link #getHologramLines()} of this object.
      *
-     * @param hologramLines the npc hologram lines.
+     * @param hologramLines The npc hologram lines.
      */
     public void setHologramLines(List<String> hologramLines) {
         this.hologramLines = hologramLines;
     }
 
-    /** Returns the current object with a new {@code hologramLines}. */
-    public NpcModel withHologramLines(List<String> hologramLines) {
+    /**
+     * Returns the current object with a new {@code hologramLines}.
+     */
+    public NPCModel withHologramLines(List<String> hologramLines) {
         setHologramLines(hologramLines);
         return this;
     }
@@ -250,57 +275,111 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Returns the npc location.
      *
-     * @return the npc location.
+     * @return The npc location.
      */
-    public PluginLocation getLocation() {
+    public ZLocation getLocation() {
         return location;
     }
 
     /**
      * Sets the {@link #getLocation()} of this object.
      *
-     * @param location the npc location.
+     * @param location The npc location.
      */
-    public void setLocation(PluginLocation location) {
+    public void setLocation(ZLocation location) {
         this.location = location;
     }
 
-    /** Returns the current object with the new {@code location}. */
-    public NpcModel withLocation(PluginLocation location) {
+    /**
+     * Returns the current object with the new {@code location}.
+     */
+    public NPCModel withLocation(ZLocation location) {
         setLocation(location);
         return this;
     }
 
     /**
-     * Returns the npc type name.
+     * Returns the npc type.
      *
-     * @return the npc type name.
+     * @return The npc type.
      */
-    public String getNpcType() {
+    public NPCType getNpcType() {
         return npcType;
     }
 
     /**
      * Sets the {@link #getNpcType()} of this object.
      *
-     * @param npcType the npc entity type.
+     * @param npcType The npc entity type.
      */
-    public void setNpcType(String npcType) {
+    public void setNpcType(NPCType npcType) {
         this.npcType = npcType;
     }
 
     /**
      * Returns the current object with the new {@code npcType}.
      */
-    public NpcModel withNpcType(String npcType) {
+    public NPCModel withNpcType(NPCType npcType) {
         setNpcType(npcType);
+        return this;
+    }
+
+    /**
+     * Returns the npc click actions.
+     *
+     * @return The npc click actions.
+     */
+    public List<NPCAction> getClickActions() {
+        return clickActions;
+    }
+
+    /**
+     * Sets the {@link #getClickActions()} of this object.
+     *
+     * @param clickActions The npc click actions.
+     */
+    public void setClickActions(List<NPCAction> clickActions) {
+        this.clickActions = clickActions;
+    }
+
+    /**
+     * Returns the current object with the new {@code clickActions}.
+     */
+    public NPCModel withClickActions(List<NPCAction> clickActions) {
+        setClickActions(clickActions);
+        return this;
+    }
+
+    /**
+     * Returns the npc equipment map.
+     *
+     * @return The npc equipment map.
+     */
+    public Map<ItemSlot, ItemStack> getNpcEquip() {
+        return npcEquip;
+    }
+
+    /**
+     * Sets the {@link #getNpcEquip()} of this object.
+     *
+     * @param npcEquip The npc equipment.
+     */
+    public void setNpcEquip(Map<ItemSlot, ItemStack> npcEquip) {
+        this.npcEquip = npcEquip;
+    }
+
+    /**
+     * Returns the current object with the new {@code npcEquip}.
+     */
+    public NPCModel withNpcEquip(Map<ItemSlot, ItemStack> npcEquip) {
+        setNpcEquip(npcEquip);
         return this;
     }
 
     /**
      * Returns the npc customization map.
      *
-     * @return the npc customization map.
+     * @return The npc customization map.
      */
     public Map<String, String[]> getCustomizationMap() {
         return customizationMap;
@@ -315,8 +394,10 @@ public class NpcModel implements Cloneable, Serializable {
         this.customizationMap = customizationMap;
     }
 
-    /** Returns the current object with the new {@code customizationMap}. */
-    public NpcModel withCustomizationMap(Map<String, String[]> customizationMap) {
+    /**
+     * Returns the current object with the new {@code customizationMap}.
+     */
+    public NPCModel withCustomizationMap(Map<String, String[]> customizationMap) {
         setCustomizationMap(customizationMap);
         return this;
     }
@@ -324,36 +405,26 @@ public class NpcModel implements Cloneable, Serializable {
     /**
      * Returns the npc function values.
      *
-     * @return the npc function values.
+     * @return The npc function values.
      */
-    public Map<String, NpcFunctionModel> getFunctions() {
+    public Map<String, Boolean> getFunctions() {
         return npcFunctions;
     }
 
     /**
      * Sets the {@link #getFunctions()} of this object.
      *
-     * @param npcFunctions the npc function values.
+     * @param npcFunctions The npc function values.
      */
-    public void setFunctions(Map<String, NpcFunctionModel> npcFunctions) {
+    public void setFunctions(Map<String, Boolean> npcFunctions) {
         this.npcFunctions = npcFunctions;
     }
 
     /**
      * Returns the current object with the new {@code npcFunctions}.
      */
-    public NpcModel withFunctionValues(Map<String, NpcFunctionModel> npcFunctions) {
+    public NPCModel withFunctionValues(Map<String, Boolean> npcFunctions) {
         setFunctions(npcFunctions);
         return this;
-    }
-
-    /**
-     * Required by gson.
-     */
-    private NpcModel() {
-        hologramLines = Collections.singletonList("/znpcs lines");
-        customizationMap = new HashMap<>();
-        npcFunctions = new HashMap<>();
-        npcFunctions.put("holo", new NpcFunctionModel(NpcFunctionContext.NULL_CONTEXT/*no data*/, true));
     }
 }

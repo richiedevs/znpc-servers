@@ -9,8 +9,6 @@ import java.io.IOException;
 
 /**
  * Helper functions for BungeeCord.
- *
- * @author Gaston Gonzalez {@literal <znetworkw.dev@gmail.com>}
  */
 public class BungeeUtils {
     /**

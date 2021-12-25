@@ -1,11 +1,11 @@
 package io.github.znetworkw.znpcservers.configuration;
 
+import io.github.znetworkw.znpcservers.ServersNPC;
+import io.github.znetworkw.znpcservers.utility.Utils;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.internal.$Gson$Types;
-import io.github.znetworkw.znpcservers.ZNPCs;
-import io.github.znetworkw.znpcservers.utility.Utils;
 import org.bukkit.command.CommandSender;
 
 import java.io.IOException;
@@ -21,31 +21,43 @@ import java.util.stream.Collectors;
 
 /**
  * Represents a configuration.
- *
- * @author Gaston Gonzalez {@literal <znetworkw.dev@gmail.com>}
  */
 public class Configuration {
     /** The configuration format. */
-    private static final String CONFIG_FORMAT = ".json";
-    /** Creates a new parser. */
+    static final String CONFIG_FORMAT = ".json";
+
+    /**
+     * Creates a new parser.
+     */
     private static final JsonParser JSON_PARSER = new JsonParser();
-    /** The configuration charset. */
+
+    /**
+     * The configuration charset.
+     */
     private static final Charset CHARSET = StandardCharsets.UTF_8;
 
-    /** The configuration name. */
+    /**
+     * The configuration name.
+     */
     private final String name;
-    /** The configuration path. */
+
+    /**
+     * The configuration path.
+     */
     private final Path path;
-    /** A map that contains the configuration values. */
+
+    /**
+     * A map that contains the configuration values.
+     */
     private final Map<ConfigurationValue, Object> configurationValues;
 
     public static final Configuration CONFIGURATION = new Configuration("config");
     public static final Configuration MESSAGES = new Configuration("messages");
+    public static final Configuration CONVERSATIONS = new Configuration("conversations");
     public static final Configuration DATA = new Configuration("data");
 
     /** List of configurations that need to be saved. */
-    public static final ImmutableList<Configuration> SAVE_CONFIGURATIONS =
-            ImmutableList.of(DATA);
+    public static final ImmutableList<Configuration> SAVE_CONFIGURATIONS = ImmutableList.of(CONVERSATIONS, DATA);
 
     /**
      * Creates a new {@link Configuration}.
@@ -53,7 +65,7 @@ public class Configuration {
      * @param name The configuration name.
      */
     protected Configuration(String name) {
-        this(name, ZNPCs.PLUGIN_FOLDER.toPath().resolve(name + CONFIG_FORMAT));
+        this(name, ServersNPC.PLUGIN_FOLDER.toPath().resolve(name + CONFIG_FORMAT));
     }
 
     /**
@@ -62,37 +74,39 @@ public class Configuration {
      * @param name The configuration name.
      * @param path The configuration path.
      */
-    private Configuration(String name, Path path) {
+    private Configuration(String name,
+                          Path path) {
         if (!path.getFileName().toString().endsWith(CONFIG_FORMAT)) {
-            throw new IllegalStateException(
-                "invalid configuration format for: " + path.getFileName());
+            throw new IllegalStateException("invalid configuration format for: " + path.getFileName());
         }
         this.name = name;
         this.path = path;
-        configurationValues = ConfigurationValue.VALUES_BY_NAME.get(name).stream()
-            .collect(Collectors.toMap(c -> c, ConfigurationValue::getValue));
+        configurationValues = ConfigurationValue.VALUES_BY_NAME.get(name)
+                .stream()
+                .collect(Collectors.toMap(c -> c, ConfigurationValue::getValue));
         onLoad();
     }
 
-    /** Loads the configuration. Called when creating a new {@link Configuration}. */
+    /**
+     * Loads the configuration. Called when creating a new {@link Configuration}.
+     */
     protected void onLoad() {
         synchronized (path) {
             try (Reader reader = Files.newBufferedReader(path, CHARSET)) {
-                final JsonElement data = JSON_PARSER.parse(reader);
+                JsonElement data = JSON_PARSER.parse(reader);
                 if (data == null) {
                     return;
                 }
                 for (ConfigurationValue configValue : configurationValues.keySet()) {
-                    final boolean isSingle = configurationValues.size() == 1;
-                    final JsonElement jsonElement = isSingle ?
-                        data : data.isJsonObject() ?
-                        data.getAsJsonObject().get(configValue.name()) : null;
+                    boolean single = configurationValues.size() == 1;
+                    JsonElement jsonElement = single ?
+                            data : data.isJsonObject() ?
+                            data.getAsJsonObject().get(configValue.name()) : null;
                     if (jsonElement != null && !jsonElement.isJsonNull()) {
-                        if (!isSingle && configValue.getPrimitiveType().isEnum()) {
-                           configurationValues.put(configValue, ZNPCs.SETTINGS.getGson().fromJson(jsonElement, configValue.getPrimitiveType()));
+                        if (!single && configValue.getPrimitiveType().isEnum()) {
+                            configurationValues.put(configValue, ServersNPC.GSON.fromJson(jsonElement, configValue.getPrimitiveType()));
                         } else {
-                            configurationValues.put(configValue,
-                                ZNPCs.SETTINGS.getGson().fromJson(jsonElement,
+                            configurationValues.put(configValue, ServersNPC.GSON.fromJson(jsonElement,
                                     $Gson$Types.newParameterizedTypeWithOwner(null, configValue.getValue().getClass(), configValue.getPrimitiveType())));
                         }
                     }
@@ -108,20 +122,23 @@ public class Configuration {
         }
     }
 
-    /** Writes the configuration values into the file. */
+    /**
+     * Writes the configuration values into the file.
+     */
     public void save() {
         synchronized (path) {
             try (Writer writer = Files.newBufferedWriter(path, CHARSET)) {
-                ZNPCs.SETTINGS.getGson().toJson(configurationValues.size() == 1
-                    ? configurationValues.values().iterator().next()
-                    : configurationValues, writer);
+                ServersNPC.GSON.toJson(configurationValues.size() == 1 ?
+                        configurationValues.values().iterator().next() : configurationValues, writer);
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to save config: " + name);
             }
         }
     }
 
-    /** Returns the configuration key value. */
+    /**
+     * Returns the configuration key value.
+     */
     public <T> T getValue(ConfigurationValue configValue) {
         synchronized (path) {
             return (T) configurationValues.get(configValue);
@@ -131,7 +148,7 @@ public class Configuration {
     /**
      * Sends a configuration message to the given command sender.
      *
-     * @param sender The sender to send the message for.
+     * @param sender      The sender to send the message for.
      * @param configValue The configuration message value.
      */
     public void sendMessage(CommandSender sender, ConfigurationValue configValue, Object... replaces) {

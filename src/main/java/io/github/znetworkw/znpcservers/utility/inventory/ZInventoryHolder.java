@@ -3,9 +3,6 @@ package io.github.znetworkw.znpcservers.utility.inventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
-/**
- * @author Gaston Gonzalez {@literal <znetworkw.dev@gmail.com>}
- */
 public class ZInventoryHolder implements InventoryHolder {
     /** The inventory in which the holder will be created for. */
     private final ZInventory zInventory;
@@ -19,7 +16,9 @@ public class ZInventoryHolder implements InventoryHolder {
         this.zInventory = zInventory;
     }
 
-    /** Returns the inventory. */
+    /**
+     * Returns the inventory.
+     */
     public ZInventory getzInventory() {
         return zInventory;
     }
